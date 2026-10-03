@@ -31,10 +31,13 @@ jobs:
         run: |
           ANDROID_DIR=$(find extracted -type f -name settings.gradle | head -1 | xargs dirname)
           APP_GRADLE="$ANDROID_DIR/app/build.gradle"
+          ROOT_GRADLE="$ANDROID_DIR/build.gradle"
 
           echo "android.useAndroidX=true" >> "$ANDROID_DIR/gradle.properties"
 
-          sed -i "s/jvmTarget = '1.8'/jvmTarget = '17'/g" "$APP_GRADLE"
+          sed -i "/id 'org.jetbrains.kotlin.android' version '2.0.21' apply false/a\\    id 'org.jetbrains.kotlin.plugin.compose' version '2.0.21' apply false" "$ROOT_GRADLE"
+
+          sed -i "/id 'org.jetbrains.kotlin.android'/a\\    id 'org.jetbrains.kotlin.plugin.compose'" "$APP_GRADLE"
 
           cat >> "$APP_GRADLE" <<'EOF'
 
