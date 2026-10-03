@@ -39,9 +39,10 @@ jobs:
         run: |
           ANDROID_DIR=$(find extracted -type f -name build.gradle | head -1 | xargs dirname)
           echo "android.useAndroidX=true" >> "$ANDROID_DIR/gradle.properties"
-          find extracted -type f -name themes.xml -exec sed -i 's/Theme.AppCompat.DayNight.NoActionBar/android:style\/Theme.Material.Light.NoActionBar/g' {} +
-          cd "$ANDROID_DIR"
-          gradle --no-daemon assembleDebug
+find extracted -type f -name themes.xml -exec sed -i 's/Theme.AppCompat.DayNight.NoActionBar/android:style\/Theme.Material.Light.NoActionBar/g' {} +
+find extracted -type f -name build.gradle -exec sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g; s/jvmTarget *= *["'\'']1.8["'\'']/jvmTarget = "17"/g' {} +
+cd "$ANDROID_DIR"
+gradle --no-daemon assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
