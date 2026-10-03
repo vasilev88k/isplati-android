@@ -1,4 +1,4 @@
-name: Build Исплати v22
+name: Build Исплати v22 Functional
 
 on:
   workflow_dispatch:
@@ -11,10 +11,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract v22 project
+      - name: Extract functional v22 project
         run: |
           mkdir extracted
-          unzip -q isplati-v22-native-android.zip -d extracted
+          unzip -q isplati-v22-functional.zip -d extracted
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -29,7 +29,7 @@ jobs:
 
       - name: Build APK
         run: |
-          ANDROID_DIR=$(find extracted -type f -path '*/app/build.gradle' | head -1 | xargs dirname | xargs dirname)
+          ANDROID_DIR=$(find extracted -type f -name settings.gradle | head -1 | xargs dirname)
 
           echo "Android project: $ANDROID_DIR"
 
@@ -43,5 +43,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: isplati-v22-debug-apk
+          name: isplati-v22-functional-apk
           path: ${{ env.ANDROID_DIR }}/app/build/outputs/apk/debug/app-debug.apk
