@@ -82,14 +82,11 @@ jobs:
           }
           EOF
 
-          cd "$ANDROID_DIR"
-          gradle --no-daemon clean assembleDebug
-              }
-          }
-          EOF
+          echo "ANDROID_DIR=$ANDROID_DIR" >> "$GITHUB_ENV"
 
           cd "$ANDROID_DIR"
           gradle --no-daemon clean assembleDebug
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
