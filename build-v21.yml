@@ -1,0 +1,58 @@
+name: Build Исплати v21
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract v21 project
+        run: |
+          mkdir extracted
+          unzip -q isplati-v21-native-android.zip -d extracted
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build APK
+        run: |
+          ANDROID_DIR=$(find extracted -type f -name settings.gradle | head -1 | xargs dirname)
+          APP_GRADLE="$ANDROID_DIR/app/build.gradle"
+
+          echo "android.useAndroidX=true" >> "$ANDROID_DIR/gradle.properties"
+
+          cat >> "$APP_GRADLE" <<'EOF'
+
+          tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+              kotlinOptions {
+                  jvmTarget = "1.8"
+              }
+          }
+          EOF
+
+          echo "ANDROID_DIR=$ANDROID_DIR" >> "$GITHUB_ENV"
+
+          cd "$ANDROID_DIR"
+          gradle --no-daemon clean assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: isplati-v21-debug-apk
+          path: ${{ env.ANDROID_DIR }}/app/build/outputs/apk/debug/app-debug.apk
