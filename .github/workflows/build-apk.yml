@@ -32,7 +32,7 @@ jobs:
           echo "ZIP_FILE=$ZIP_FILE"
           unzip -q "$ZIP_FILE" -d extracted
 
-      - name: Prepare build settings
+      - name: Prepare Android project
         shell: bash
         run: |
           set -e
@@ -47,27 +47,13 @@ jobs:
 
           find "$ANDROID_DIR" -type f -name themes.xml -exec sed -i 's/Theme.AppCompat.DayNight.NoActionBar/android:style\/Theme.Material.Light.NoActionBar/g' {} +
 
-          # Replace every possible Java 1.8 setting with Java 17.
-          find "$ANDROID_DIR" -type f -name '*.gradle' -exec sed -i             -e 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g'             -e 's/JavaVersion.VERSION_8/JavaVersion.VERSION_17/g'             -e 's/sourceCompatibility[[:space:]]*=[[:space:]]*[^[:space:]]*/sourceCompatibility JavaVersion.VERSION_17/g'             -e 's/targetCompatibility[[:space:]]*=[[:space:]]*[^[:space:]]*/targetCompatibility JavaVersion.VERSION_17/g'             -e 's/jvmTarget[[:space:]]*=[[:space:]]*["'"'"']1\.8["'"'"']/jvmTarget = "17"/g' {} +
-
-          # Add a final override inside the app module.
+          # The project compiles Java at 1.8. Match Kotlin to Java 1.8.
           cat >> "$APP_GRADLE" <<'EOF'
 
-          // Final JVM 17 compatibility override.
-          android {
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-
-          tasks.withType(JavaCompile).configureEach {
-              options.release = 17
-          }
-
+          // Match Kotlin JVM target to Android Java target.
           tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
               kotlinOptions {
-                  jvmTarget = "17"
+                  jvmTarget = "1.8"
               }
           }
           EOF
