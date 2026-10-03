@@ -36,10 +36,11 @@ jobs:
           echo "Found: $ANDROID_DIR"
 
       - name: Build APK
-        run: |
-          ANDROID_DIR=$(find extracted -type f -name build.gradle | head -1 | xargs dirname)
-          cd "$ANDROID_DIR"
-          gradle --no-daemon assembleDebug
+  run: |
+    ANDROID_DIR=$(find extracted -type f -name build.gradle | head -1 | xargs dirname)
+    echo "android.useAndroidX=true" >> "$ANDROID_DIR/gradle.properties"
+    cd "$ANDROID_DIR"
+    gradle --no-daemon assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
