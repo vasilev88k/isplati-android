@@ -22,25 +22,23 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Prepare Android project and build APK
+      - name: Extract Android project
+        shell: bash
+        run: |
+          set -e
+          rm -rf extracted
+          mkdir extracted
+          ZIP_FILE=$(find . -maxdepth 3 -type f -name '*.zip' | head -1)
+          echo "ZIP_FILE=$ZIP_FILE"
+          unzip -q "$ZIP_FILE" -d extracted
+
+      - name: Prepare build settings
         shell: bash
         run: |
           set -e
 
-          ZIP_FILE=$(find . -maxdepth 3 -type f -name '*.zip' | head -1 || true)
-
-          if [ -n "$ZIP_FILE" ]; then
-            rm -rf extracted
-            mkdir extracted
-            unzip -q "$ZIP_FILE" -d extracted
-          fi
-
-          ANDROID_DIR=$(find . -type f -path '*/android/settings.gradle' -print -quit | xargs -r dirname)
-
-          if [ -z "$ANDROID_DIR" ]; then
-            echo "Android project not found"
-            exit 1
-          fi
+          ANDROID_DIR=$(find extracted -type f -name settings.gradle -print -quit | xargs dirname)
+          APP_GRADLE="$ANDROID_DIR/app/build.gradle"
 
           echo "ANDROID_DIR=$ANDROID_DIR"
 
@@ -49,11 +47,13 @@ jobs:
 
           find "$ANDROID_DIR" -type f -name themes.xml -exec sed -i 's/Theme.AppCompat.DayNight.NoActionBar/android:style\/Theme.Material.Light.NoActionBar/g' {} +
 
-          APP_GRADLE="$ANDROID_DIR/app/build.gradle"
+          # Replace every possible Java 1.8 setting with Java 17.
+          find "$ANDROID_DIR" -type f -name '*.gradle' -exec sed -i             -e 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g'             -e 's/JavaVersion.VERSION_8/JavaVersion.VERSION_17/g'             -e 's/sourceCompatibility[[:space:]]*=[[:space:]]*[^[:space:]]*/sourceCompatibility JavaVersion.VERSION_17/g'             -e 's/targetCompatibility[[:space:]]*=[[:space:]]*[^[:space:]]*/targetCompatibility JavaVersion.VERSION_17/g'             -e 's/jvmTarget[[:space:]]*=[[:space:]]*["'"'"']1\.8["'"'"']/jvmTarget = "17"/g' {} +
 
+          # Add a final override inside the app module.
           cat >> "$APP_GRADLE" <<'EOF'
 
-          // Force Java and Kotlin to use the same JVM target.
+          // Final JVM 17 compatibility override.
           android {
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
@@ -72,14 +72,17 @@ jobs:
           }
           EOF
 
-          cd "$ANDROID_DIR"
-
-          echo "Final app/build.gradle:"
-          cat app/build.gradle
-
-          gradle --no-daemon clean assembleDebug
+          echo "----- FINAL app/build.gradle -----"
+          cat "$APP_GRADLE"
 
           echo "ANDROID_DIR=$ANDROID_DIR" >> "$GITHUB_ENV"
+
+      - name: Build APK
+        shell: bash
+        run: |
+          set -e
+          cd "$ANDROID_DIR"
+          gradle --no-daemon clean assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
