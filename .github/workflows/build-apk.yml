@@ -63,13 +63,27 @@ jobs:
 
           echo "ANDROID_DIR=$ANDROID_DIR" >> "$GITHUB_ENV"
 
+      
       - name: Build APK
-        shell: bash
         run: |
-          set -e
+          ANDROID_DIR=$(find extracted -type f -name settings.gradle | head -1 | xargs dirname)
+          APP_GRADLE="$ANDROID_DIR/app/build.gradle"
+
+          echo "android.useAndroidX=true" >> "$ANDROID_DIR/gradle.properties"
+
+          find extracted -type f -name themes.xml -exec sed -i 's/Theme.AppCompat.DayNight.NoActionBar/android:style\/Theme.Material.Light.NoActionBar/g' {} +
+
+          cat >> "$APP_GRADLE" <<'EOF'
+
+          tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+              kotlinOptions {
+                  jvmTarget = "1.8"
+              }
+          }
+          EOF
+
           cd "$ANDROID_DIR"
           gradle --no-daemon clean assembleDebug
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
