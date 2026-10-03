@@ -6,6 +6,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,12 +22,13 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Prepare Android project
+      - name: Prepare Android project and build APK
         shell: bash
         run: |
           set -e
 
           ZIP_FILE=$(find . -maxdepth 3 -type f -name '*.zip' | head -1 || true)
+
           if [ -n "$ZIP_FILE" ]; then
             rm -rf extracted
             mkdir extracted
@@ -34,6 +36,7 @@ jobs:
           fi
 
           ANDROID_DIR=$(find . -type f -path '*/android/settings.gradle' -print -quit | xargs -r dirname)
+
           if [ -z "$ANDROID_DIR" ]; then
             echo "Android project not found"
             exit 1
@@ -47,10 +50,34 @@ jobs:
           find "$ANDROID_DIR" -type f -name themes.xml -exec sed -i 's/Theme.AppCompat.DayNight.NoActionBar/android:style\/Theme.Material.Light.NoActionBar/g' {} +
 
           APP_GRADLE="$ANDROID_DIR/app/build.gradle"
-          sed -i '/^dependencies {/i\    compileOptions {\n        sourceCompatibility JavaVersion.VERSION_17\n        targetCompatibility JavaVersion.VERSION_17\n    }\n\n    kotlinOptions {\n        jvmTarget = "17"\n    }\n' "$APP_GRADLE"
+
+          cat >> "$APP_GRADLE" <<'EOF'
+
+          // Force Java and Kotlin to use the same JVM target.
+          android {
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+
+          tasks.withType(JavaCompile).configureEach {
+              options.release = 17
+          }
+
+          tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+          }
+          EOF
 
           cd "$ANDROID_DIR"
-          gradle --no-daemon assembleDebug
+
+          echo "Final app/build.gradle:"
+          cat app/build.gradle
+
+          gradle --no-daemon clean assembleDebug
 
           echo "ANDROID_DIR=$ANDROID_DIR" >> "$GITHUB_ENV"
 
