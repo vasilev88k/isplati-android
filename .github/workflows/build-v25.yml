@@ -1,0 +1,47 @@
+name: Исплати v25 Modern UI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract v25 project
+        run: |
+          mkdir extracted
+          unzip -q isplati-v25-modern-ui.zip -d extracted
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build APK
+        run: |
+          ANDROID_DIR=$(find extracted -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit | xargs dirname)
+
+          echo "Android project: $ANDROID_DIR"
+
+          echo "android.useAndroidX=true" >> "$ANDROID_DIR/gradle.properties"
+
+          cd "$ANDROID_DIR"
+          gradle --no-daemon clean assembleDebug
+
+          echo "ANDROID_DIR=$ANDROID_DIR" >> "$GITHUB_ENV"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: isplati-v25-modern-ui-apk
+          path: ${{ env.ANDROID_DIR }}/app/build/outputs/apk/debug/app-debug.apk
