@@ -14,7 +14,7 @@ jobs:
       - name: Extract v25 project
         run: |
           mkdir extracted
-          unzip -q isplati-v25-modern-ui.zip -d extracted
+          unzip -q isplati-v25-modern-ui-fixed.zip -d extracted
 
       - name: Set up Java
         uses: actions/setup-java@v4
