@@ -1,0 +1,33 @@
+name: Build Исплати – Admin QR Total
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract web source
+        run: |
+          mkdir extracted
+          unzip -q isplati-system-v16-admin-qr-total.zip -d extracted
+
+      - name: Find web source
+        run: |
+          echo "Files found:"
+          find extracted -maxdepth 3 -type f | sort
+
+      - name: Prepare output
+        run: |
+          mkdir -p output
+          cp -r extracted/* output/
+
+      - name: Upload modified web source
+        uses: actions/upload-artifact@v4
+        with:
+          name: isplati-admin-qr-total
+          path: output/
